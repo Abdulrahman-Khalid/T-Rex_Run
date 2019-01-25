@@ -13,6 +13,8 @@ T_Rex_Shape_8 db '  * *','$'
 
 T_Rex_Height equ 8
 T_Rex_Width equ 8
+T_Rex_Collision_Edges dw ?, ?, ?, ?, ?, ?, ?, ?, ?  
+T_Rex_Edges_Count equ 9
 
 Small_Cactus_Shape_1 db '*  *','$'
 Small_Cactus_Shape_2 db '* *** *','$'
@@ -21,22 +23,57 @@ Small_Cactus_Shape_4 db '*****','$'
 Small_Cactus_Shape_5 db '  ***','$' 
 
 Small_Cactus_Height equ 5 
-Small_Cactus_width equ 7
+Small_Cactus_width equ 7 
+Small_Cactus_Edges dw ?, ?, ?, ?, ?
+Small_Cactus_Edges_Count equ 5
 
 Big_Cactus_Shape_1 db '   *  *','$'
 Big_Cactus_Shape_2 db '* *** *','$'
 Big_Cactus_Shape_3 db '* *** *','$'
-Big_Cactus_Shape_4 db '***** *','$'
+Big_Cactus_Shape_4 db '***** *','$'              
 Big_Cactus_Shape_5 db '  *****','$'
 Big_Cactus_Shape_6 db '  *** ','$'
-Big_Cactus_Shape_7 db '  *** ','$'
+Big_Cactus_Shape_7 db '  *** ','$' 
 
 Big_Cactus_Height equ 7 
-Big_Cactus_width equ 7
+Big_Cactus_width equ 7      
+Big_Cactus_Edges dw ?, ?, ?, ?, ?                             
+Big_Cactus_Edges_Count equ 5
+ 
+Clouds_Shape_1 db '   **                     **','$'
+Clouds_Shape_2 db '  *  *  **           **  *  *   **','$'
+Clouds_Shape_3 db ' *    **  *         *  **    * *  *','$'
+Clouds_Shape_4 db '*          *       *          *    *','$'
+Clouds_Shape_5 db '************       *****************','$'
+Clouds_Position equ 0617h
+;     (*)  (*)
+;(*)(*)*(*) *
+; *  * * *  *
+; ** * * *  *
+;    * * * **
+;    * * *
+;    * * *  
+
+;(*)  (*)
+; * (*)*(*)(*)
+; *  * * * **
+; ** * * *
+;    * * *
+
+;       * * *  *
+;       * * *  *
+;       * *(*)(*)
+;(*)    * *
+;(*)*  **(*)
+; (*)* ** *
+;    *(*) * 
+;   (*)  (*) 
 
 Y_Cactus equ 21
 X_T_Rex equ 2 
 T_Rex_On_Ground equ 21 
+Best_Score db 0
+Score db 0    
 
 T_Rex_Position db 21;db because only y axis change every frame
 Small_Cactus_Position db 40 ;db because only x axis change every frame
@@ -66,11 +103,63 @@ mov dh,22 ; y axis
 int 10h
 ;----draw ground----  
 mov ah,9
-mov bh,0
+mov bh,0                    
 mov al,'*' 
 mov cx, 80 ; the screen's width is 80 so the number of * to be in the ground should be 80
 mov bl, 0fh
-int 10h
+int 10h    
+;-----------------Draw Clouds-------------------------------------
+  
+;----move cursor----  
+mov ah, 2      
+mov dx, Clouds_Position
+int 10h   
+;----Draw Clouds----
+mov ah, 9
+mov dx, offset Clouds_Shape_5 
+int 21h
+
+;----move cursor----  
+mov ah, 2      
+mov dx, Clouds_Position 
+sub dh, 1                
+int 10h   
+;----Draw Clouds----
+mov ah, 9
+mov dx, offset Clouds_Shape_4
+int 21h      
+
+;----move cursor----  
+mov ah, 2      
+mov dx, Clouds_Position 
+sub dh, 2                
+int 10h   
+;----Draw Clouds----
+mov ah, 9
+mov dx, offset Clouds_Shape_3
+int 21h   
+
+;----move cursor----  
+mov ah, 2      
+mov dx, Clouds_Position 
+sub dh, 3                
+int 10h   
+;----Draw Clouds----
+mov ah, 9
+mov dx, offset Clouds_Shape_2
+int 21h   
+
+;----move cursor----  
+mov ah, 2      
+mov dx, Clouds_Position 
+sub dh, 4                
+int 10h   
+;----Draw Clouds----
+mov ah, 9
+mov dx, offset Clouds_Shape_1
+int 21h
+
+
 ;------------------ 
 call DrawT_Rex
 call DrawSmallCactus
