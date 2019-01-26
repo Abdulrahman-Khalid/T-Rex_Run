@@ -1,0 +1,956 @@
+﻿;اللعبة عاملها من اولها لاخرها
+;في كومنتس انجلش كاتبها و انا بعملها علشان افتكر لما اكتب العربي مش همسحها و اكتب العربي معاها
+;الجامبز و البانشنج متظبط الى حد ما على قد ما اقدر تقريبا اي كومبير بيبقا بعد الجامب اللي غالبا الحاجة اللي هتكون سايدة اكتر معظم السينز
+.model small
+.stack 64
+.data                                               
+;فالداتا حاولت كل الارقام او اغلب الارقام اللي هستخدمها تبقا مجودة فكونستنت علشان لما اغيرها يبقا اغيرها فالداتا بس و اللعبة تشتغل عادي 
+;دي حاجة الديناصور
+;اول حاجة رسمة حاطط كل سطر هيترسم ففاريبل                       
+T_Rex_Shape_1 db '    ****','$'
+T_Rex_Shape_2 db '    ****','$'
+T_Rex_Shape_3 db '    ****','$'
+T_Rex_Shape_4 db '*   **','$'
+T_Rex_Shape_5 db '** ***','$'
+T_Rex_Shape_6 db ' *****','$'
+T_Rex_Shape_7 db '  *** ','$'
+T_Rex_Shape_8 db '  * *','$' 
+;طولة و عرضة و عدد النجوم اللي ممكن يتخبط فيها و النجوم نفسها
+T_Rex_Height equ 8 ;طولة
+T_Rex_Width equ 8  ;عرضة
+T_Rex_Edges_Count equ 9 ;عدد النجوم اللي ممكن يتخبط فيها
+T_Rex_Edges dw ?, ?, ?, ?, ?, ?, ?, ?, ? ; دي النجوم نفسها اللي ممكن يتخبط فيها فالديناصور اماكنها على الشاشة   
+T_Rex_Position db 21 ;db because only y axis change every frame  اصغر مربع ممكن ياخد الديناصور دا طرف المربع من تحت على الشمال
+Max_Jump equ 9 ;the legs position at the max jump دي اقصي نطة ممكن ينطها رجله توصل للرقم دا
+Jump_Mode db 0 ;0 => not in jump, 1 => in jump going up and 2 => in jump going down دا مود النطقة لما يبقا 0 يعني هو مش بينط لما يبقا 1 يعني فالهوا و بينط لفوق لما تبقى 2 يعني بيقع لتحت فالهوا
+
+;دا الصبار الصغير
+;اول حاجة رسمة حاطط كل سطر هيترسم ففاريبل 
+Small_Cactus_Shape_1 db '*  *','$'
+Small_Cactus_Shape_2 db '* *** *','$'
+Small_Cactus_Shape_3 db '* *****','$'
+Small_Cactus_Shape_4 db '*****','$'
+Small_Cactus_Shape_5 db '  ***','$' 
+;طولة و عرضة و عدد النجوم اللي ممكن يتخبط فيها و النجوم نفسها
+Small_Cactus_Height equ 5 ;طولة
+Small_Cactus_width equ 7  ;عرضة         
+Small_Cactus_Edges_Count equ 5 ;عدد النجوم اللي ممكن يتخبط فالديناصور
+Small_Cactus_Edges dw ?, ?, ?, ?, ? ; دي مكان النجوم اللي ممكن تتخبط فالديناصور فالشاشة
+Small_Cactus_Position db 40 ;db because only x axis change every frame ; اصغر مربع ممكن ياخد الصبار دا طرف المربع من تحت على الشمال
+
+; الصبار الطويل
+;اول حاجة رسمة حاطط كل سطر هيترسم ففاريبل 
+Big_Cactus_Shape_1 db '   *  *','$'
+Big_Cactus_Shape_2 db '* *** *','$'
+Big_Cactus_Shape_3 db '* *** *','$'
+Big_Cactus_Shape_4 db '***** *','$'              
+Big_Cactus_Shape_5 db '  *****','$'
+Big_Cactus_Shape_6 db '  *** ','$'
+Big_Cactus_Shape_7 db '  *** ','$' 
+;طولة و عرضة و عدد النجوم اللي ممكن يتخبط فيها و النجوم نفسها
+Big_Cactus_Height equ 7 ;طولة
+Big_Cactus_width equ 7  ;عرضة   
+Big_Cactus_Edges_Count equ 5 ;عدد النجوم اللي ممكن يتخبط فالديناصور
+Big_Cactus_Edges dw ?, ?, ?, ?, ? ; دي مكان النجوم اللي ممكن تتخبط فالديناصور فالشاشة
+Big_Cactus_Position db 73 ;db because only x axis change every frame ; اصغر مربع ممكن ياخد الصبار دا طرف المربع من تحت على الشمال
+
+;الجزء دا بتاع السرعة لما بيجيب 5 سكور زيادة الديلاي بيقل فالسرعة بتاعة اللعبة بتزيد فتبقا اصعب                          
+Score_To_Inc_Speed equ 5 ; الرقم دا هو السكور اللي لما يزيده هسرع اللعبة يعني لما يكون 5 و يبقا 10 السرعة هتزيد مثلا        
+Score_Counter_For_Speed db 0 ; دا كاونتر بيفضل يزيد لحد لما يبقا قد الفاريبل اللي فوق و بعدين يزود السرعة بتاعه اللعبة لما يساوي و يتصفر من الاول تاني
+Delay_Dec_Value equ 100 ; to increase speed ; دا الرقم اللي هققله من الديلاي انا مختارة يبقا 100 علشان يقبل الاسمه على رقم الديلاي اللي هو 31200 علشان يوصل لصفر و ميققلش اكتر من كدا 
+											; و ميحصلش اوفر لودنج و يبقا بطئ جدا بدل ما هو المفروض يحصل
+Delay dw 31200  ;31200 divisable by 100 (Delay_Dec_Value) will reach zero 
+
+;رسم الغيوم 
+Clouds_Shape_1 db '   **                     **','$'
+Clouds_Shape_2 db '  *  *  **           **  *  *   **','$'
+Clouds_Shape_3 db ' *    **  *         *  **    * *  *','$'
+Clouds_Shape_4 db '*          *       *          *    *','$'
+Clouds_Shape_5 db '************       *****************','$'
+Clouds_Position equ 0617h ;طرف الغيمة اللي على الشمال من تحت على الشمال المكان اللي عاوز ابدأ ارسم عنده
+
+Y_Cactus equ 21 ; مكان اصبار على الشاشة الواي اكسز بتاعه
+X_T_Rex equ 2  ; مكان الديناصور على الشاشة الاكس اكسز بتاعه
+T_Rex_On_Ground equ 21 ; دي الواي اكسز اللي لو الديناصور بوزيشن بيساويها يبقا الديناصور على الارض   
+
+Best_Score dw 0 ; احسن سكور جابة طول ما هو مقفلش اللعبة و بيعيد
+Score dw 0   ; سكور الجيم بتاع دلوقتي 
+Best_Score_Msg db 'Best Score : ','$'
+Score_Msg db 'Score : ','$'  
+Number dw ? ; الفايريبل دا بستخدمة ففانكشن بتعرض الرقم بتاع السكور او البست سكور بحط فيها السكور او البست سكور و بعدين انادي الفانكشن فطلع الرقم على الشاشة
+
+; الاتنين دول بتوع فانكشن بتكلير الشاشة اول واحد طرف المربع من فوق على الشمال التاني طرف المربع من تحت على اليمين
+Top_Left dw ?
+Bottom_Right dw ? 
+
+Restart_Msg db 'Click R to Restart or ESC to Exit','$'
+Msg_Position equ 0117h ; مكان الماسدج بتاعه الريستارت
+
+.code
+main proc far           
+    
+mov ax,@data
+mov ds,ax 
+           
+StartOver:
+;----------------Disable Cursor----------------------------------- ; الجزء دا بيشيل المؤشر بتاع الكتابة علشان ميفضل ينور و يطفي
+mov ch, 32
+mov ah, 1
+int 10h   
+;---------------Clear Whole Screen------------------------------- ; الجزء دا بيمسح الشاشة كلها 
+mov Top_Left, 0 ; طرف الشاشة من فوق على اليمين
+mov Bottom_Right, 1950h ; طرف الشاشة من تحت على اليمين علشان هيا 80*25
+call clear   ; الفانكشن دي بتعمل الانتربنت اللي بيعمل سكرول على حسب الاتنين فاريبل دول
+
+;----move cursor---- ; الجزء دا بيحرك المؤشر اللي بكتب بيه علشان اكتب البست سكور 
+mov ah,2
+mov dl,2  ;x axis
+mov dh,1  ;y axis
+int 10h
+;----Print Best Score----- ; الجزء دا بيطبع البست سكور على الشاشة
+mov ah, 9
+mov dx, offset Best_Score_Msg
+int 21h
+ 
+mov ax, Best_Score ; بحطة الاول فريجستر علشان اعرف احطة فالفاريبل فالسطر اللي بعده 
+mov Number, ax ; بحط فالفاريبل دا الرقم اللي عاوز اطبعة على الشاشة
+call DisplayNumber ; و بعدين انادي الفانكشن دي بتطبعه كرقم عشري عادي
+
+;----move cursor---- ; بحرك المؤشر علشان اطبع السكور بتاع دلوقتي  
+mov ah,2
+mov dl,65  ;x axis
+mov dh,1   ;y axis
+int 10h
+;----print Score----- ; هنا بطبع السكور
+mov ah, 9
+mov dx, offset Score_Msg
+int 21h
+ 
+mov ax, Score ; بحطة الاول فريجستر علشان اعرف احطة فالفاريبل فالسطر اللي بعده
+mov Number, ax ; بحط فالفاريبل دا الرقم اللي عاوز اطبعة على الشاشة
+call DisplayNumber ; و بعدين انادي الفانكشن دي بتطبعه كرقم عشري عادي
+
+
+;----move cursor----  ; هنا بحرك المؤشر علشان ارسم الارض اللي واقف عليها الديناصور
+mov ah,2
+mov dl,0  ;x axis
+mov dh,22 ; y axis
+int 10h
+;----draw ground----  ;  دا انتربت بيرسم نفس الكاركتر عدد معين من المرات بيبقا العدد دا موجود فالريجستر سي اكس و الكاركتر ف ايه ال و اللون ف بي ال
+mov ah,9
+mov bh,0                    
+mov al,'*' 
+mov cx, 80 ; the screen's width is 80 so the number of * to be in the ground should be 80
+mov bl, 0fh
+int 10h                
+mov bx,0 ;for move cursor be okay
+;-----------------Draw Clouds------------------------------------- ; دا الجزء اللي بيرسم السحاب برسمة من تحت لفوق فهترح من ال واي اكسز على طول 
+;----move cursor----  ; بحرك المؤشر على المكان اللي عاوز ابدأ اطبع عنده الكونستنت اللي عرفته فوق 
+mov ah, 2      
+mov dx, Clouds_Position
+int 10h   
+;----Draw Clouds---- ; برسم الشكل سطر سطر دا الانتربت اللي بيطبع سترنج
+mov ah, 9
+mov dx, offset Clouds_Shape_5 
+int 21h
+
+;----move cursor----  ; برسم الشكل سطر سطر دا الانتربت اللي بيطبع سترنج
+mov ah, 2      
+mov dx, Clouds_Position 
+sub dh, 1             ; بطرح واحد علشان ارسم السطر اللي فوقيه   
+int 10h   
+; باقي السطور نفس الفكرة بس بدل مطرح واحد هطرح اتنين وبعدين 3 و هكذا و انا بحرك المؤشر
+;----Draw Clouds----
+mov ah, 9
+mov dx, offset Clouds_Shape_4
+int 21h      
+
+;----move cursor----  
+mov ah, 2      
+mov dx, Clouds_Position 
+sub dh, 2                
+int 10h   
+;----Draw Clouds----
+mov ah, 9
+mov dx, offset Clouds_Shape_3
+int 21h   
+
+;----move cursor----  
+mov ah, 2      
+mov dx, Clouds_Position 
+sub dh, 3                
+int 10h   
+;----Draw Clouds----
+mov ah, 9
+mov dx, offset Clouds_Shape_2
+int 21h   
+
+;----move cursor----  
+mov ah, 2      
+mov dx, Clouds_Position 
+sub dh, 4                
+int 10h   
+;----Draw Clouds----
+mov ah, 9
+mov dx, offset Clouds_Shape_1
+int 21h
+
+
+;------------------ 
+call DrawT_Rex ; دي بترسم الديناصور
+call DrawSmallCactus ; دي بترسم الصبار الصغير
+call DrawBigCactus ; دي بترسم الصبار الكبير
+
+;intialization of Edges ; طبعا الديناصور و الصبار ممكن يخبطو فبعض فانا بخزن شوية بوزيشنز فجسمهم مش كلهم طبعا علشان اتشك لو بيساو بعض يبقو خبطو فبعض فهو خسر  
+
+;--T-Rex--------------- 
+;        * * *  *
+;        * * *  *
+;        * *(2)(1)
+; *      *(3)
+;(9)*  * * *
+; (8)* * *(4)
+;    *(6)* 
+;(S)(7) (5)  
+;اول حاجة الديناصور
+;علشان اسهل الموضوع رسمت الديناصور من الاول و حددت النجوم اللي ممكن الصبار يخبط فيها بحيث اني لو كنت بنط ووقعت عليه حتى اعرف اني خبطة
+;شيلت النجوم و حطيت ارقام علشان اشرح عليها انا بجمع كدا ليه و هكذا انا معايا طبعا ال اس اللي هيا تحت على الشمال دا التي ريكس بوزيشن 
+;هروح من اول الاس لحد ال 1 باني اجمع 7 علي الاكس اللي هيا هتبقا ال دي ال و اطرح 5 علشان اطلع فوق 5 باني اطرح 5 من ال دي اتش و هكذا هروح من 1 ل 2 و من 2 ل 3 
+; و كل بوزيشن هجيبة جديد هحطة فالفاريبل بتاع الايدجز اللي اتكلمت عنه فوق
+; و بعدين [2] علشان دي ورد مش بايت [0] بجمع اتنين
+;الكام سطر دول بيقول انا بجمع بظبط كام على الاكس و الواي علشان اوصل فالاخر من اس ل 1 و من 1 ل 2 الخ
+
+;+7x-5y from S to go to 1
+;-x  to go to 2 
+;-x+y to go to 3
+;+2y to go to 3 
+;-x+2y to go to 4
+;-x-y to go to 5
+;-x+y to go to 6
+;-x-2y to go to 7  
+;-x-y to go to 8 
+
+
+mov dh, T_Rex_Position
+mov dl, X_T_Rex
+
+add dl, 7       ;7x
+sub dh, 5       ;-5y
+mov T_Rex_Edges[0], dx  ;Go to 1
+
+sub dl, 1 ;-x
+mov T_Rex_Edges[2], dx  ;Go to 2
+
+sub dl, 1 ;-x  
+add dh, 1 ;+y
+mov T_Rex_Edges[4], dx  ;Go to 3
+  
+add dh, 2 ;+2y
+mov T_Rex_Edges[6], dx  ;Go to 4
+
+sub dl, 1 ;-x  
+add dh, 2 ;+2y
+mov T_Rex_Edges[8], dx  ;Go to 5
+
+sub dl, 1 ;-x  
+sub dh, 1 ;-y
+mov T_Rex_Edges[10], dx  ;Go to 6  
+
+sub dl, 1 ;-x  
+add dh, 1 ;+y
+mov T_Rex_Edges[12], dx ;Go to 7   
+
+sub dl, 1 ;-x  
+sub dh, 2 ;-2y
+mov T_Rex_Edges[14], dx ;Go to 8
+
+sub dl, 1 ;-x  
+sub dh, 1 ;-y
+mov T_Rex_Edges[16], dx ;Go to 9
+
+;--Small Cactus-------- 
+call SmallCactusEdges ; بتست الايدجس بتاعة الصبار الصغير
+
+;--Big Cactus-------- 
+call BigCactusEdges ; بتست الايدجس بتاعة الصبار الكبير
+
+GameLoop: ; اللوب بتاعة اللعبة	
+	; بيشوف داس على زرار ولا ايه
+    mov ah,1
+    int 16h 
+    pushf  ;مهم علشان ميضعش اني دوست على زرار ولا لا                           
+    ;----------------Making Delay---------------- بعمل ديلاي هنا بستخدم الديلاي فاريبل اللي عملته فوق
+    mov cx, 0H
+    mov dx, Delay
+    mov ah, 86H
+    int 15H
+    ;-------------------New Frame----------------  دا فريم جديد بجدد فيه السين مش بمسح و ارسم من الاول بجدد الحاجات اللي محتاجة تتجدد بس
+    ;-------------------First the T-Rex----------  1- ارسم الديناصور
+    cmp Jump_Mode, 0 ; غالبا معظم الوقت مش بينط فعلشان البرانشنج خليت يقارن لو هو على الارض مش بينط دلوقتي ميرشمس الديناصور من الاول
+    jz Skip_T_Rex    ; بيعدي حتة مسح الديناصور و رسمة من الاول
+    ;-------------------First Clear T-Rex-------- ; هنا بيمسح الديناصور معايا الاكس و الواي بتاعته عادي
+    mov dl, X_T_Rex  
+    mov dh, T_Rex_Position     
+    sub dh, T_Rex_Height 
+    inc dh ; بجمع واحد علشان لو جمعت الطول على النقطة اللي على نفس سطر هيبقا المربع فوق مسافة 1 في حاجات زيها
+			; نقس الفكرة زيها تحت كتير سواء بطرح او اجمع واحد بعد لما اطرح او اجمع طول او عرض على الستارت بوزيشن المكان اللي تحت على الشمال يعني علشان اوصل لطرفين المربع
+			; اللي همسحة
+    mov Top_Left, dx 
+    add dl, T_Rex_width
+    mov dh, T_Rex_Position 
+    mov Bottom_Right, dx
+    call clear 
+    ;-------------------Second Move T-Rex-------- هنا بحرك الديناصور على حسب هو فانهي جامب مود مش بينط و لا بينط لفوق ولا خلص نطته و بينزل لتحت باني باقلل او ازود واي البوزيشن بتاعته
+												;برضو بغير فالايدجز بتاعته علشان هو اتحرك فنفس الكلام بققلها او انقص الواي بتاعتها واحد على حسب طالع ولا نازل
+    cmp Jump_Mode, 1
+    jz Dec_Y_T_Rex 
+    
+    inc T_Rex_Position ; if jump mode is 2
+    mov cx, T_Rex_Edges_Count
+    mov di,0       
+    
+    T_Rex_Edges_Loop_Inc: 
+    add T_Rex_Edges[di], 0100h 
+    add di, 2
+    loop T_Rex_Edges_Loop_Inc
+    
+    jmp T_Rex                              
+    ;----------------------------------------
+    Dec_Y_T_Rex:
+    dec T_Rex_Position
+    
+    mov cx, T_Rex_Edges_Count
+    mov di,0       
+    
+    T_Rex_Edges_Loop_Dec:
+    sub T_Rex_Edges[di], 0100h 
+    add di, 2
+    loop T_Rex_Edges_Loop_Dec
+    ;--------------------------------------- ; بعد لما اتحرك خلاص ببدأ اشوف هو المود بتاع النطة بتاعته اتغير ولا ايه علشان اغيره يعني لو لمس الارض خلاص بغير المود بتاعه من 2 ل 0
+											; و لو وصل للماكسمم جامب احوله من 1 ل 2 من بينط طالع لفوق لنازل تحت فالهوا
+    T_Rex:ظ
+    call DrawT_Rex
+    
+    cmp T_Rex_Position, T_Rex_On_Ground 
+    jz Landed  
+    
+    cmp T_Rex_Position, Max_Jump 
+    jz TopJump 
+    
+    jmp Skip_T_Rex
+    
+    Landed:
+    mov Jump_Mode, 0 ;Landed
+       
+    jmp Skip_T_Rex
+    
+    TopJump:
+    mov Jump_Mode, 2 ;Start to fall down
+     
+    Skip_T_Rex:
+    ;-----------------Small Cactus----- ; الصبار الصغير بيتحرك للشمال الاكس بتاعته بتصغر
+    ;----First clear------------------- ; اول حاجة همسحة
+    mov dl, Small_Cactus_Position
+    mov dh, Y_Cactus     
+    sub dh, Small_Cactus_Height 
+    inc dh
+    mov Top_Left, dx 
+    add dl, Small_Cactus_width
+    dec dl
+    mov dh, Y_Cactus 
+    mov Bottom_Right, dx
+    call clear 
+    ;---------Second decide move or start over--- هنا بشوف هبدأ من اول وجديد على طرف الشاشة من اليمين ارسمة لو هو وصل لاخر الشاشة من الشمال و لا لو لسه موصلش هكمل و احركة للشمال 
+    cmp Small_Cactus_Position, 0 
+    jnz Continue_Moving_Small_Cactus
+    
+    mov Small_Cactus_Position, 80 ;width of the screen
+    sub Small_Cactus_Position, Small_Cactus_width   
+    call SmallCactusEdges 
+                           
+    inc Score             ; لو بدأ من الاول يبقا الديناصور فلت يعني هزود السكور فبزودة و بزود الكاونتر علشان ابقا اعدل السرعة لما يزيدالرقم المطلوب علشان اعدل السرعة
+    inc Score_Counter_For_Speed
+    call CheckIncSpeed ; دي بتشوفلي السرعة هتتعدل ولا لا و تعدله لو هتتعدل
+    ;--------Clear and Write the new Score---- هنا بعرض السكور الجديد بمسح و بعدين اغير مكان المؤشر و اكتب السكور من الاول
+    
+    ;----move cursor----  
+    mov ah,2
+    mov dl,73  ;x axis (5+ length(score : ) = 65+8=73
+    mov dh,1   ;y axis
+    int 10h 
+    ;-----Clear---------  
+    mov Top_Left, dx 
+    mov Bottom_Right, 0150h ; (x,y)=(80,1)
+    call Clear
+    ;----Print Score-----
+    mov ax, Score
+    mov Number, ax
+    call DisplayNumber
+
+    jmp Small_Cactus
+            
+    Continue_Moving_Small_Cactus:
+    dec Small_Cactus_Position ; بحرك الصبار شمال
+    ;هنا بعدل الايدجس بتاع الصبار بحركها مع الصبار خطوة على الشمال
+    mov cx, Small_Cactus_Edges_Count
+    mov di,0       
+    
+    Small_Cactus_Dec:
+    sub Small_Cactus_Edges[di], 0001h 
+    add di, 2
+    loop Small_Cactus_Dec
+    
+    Small_Cactus:            
+    call DrawSmallCactus  ; برسمة من الاول 
+    ;-----------------Big Cactus----- ;نفس الكلام بظبط بتاع الصبار الصغير هيتعمل على الصبار الكبير مع اختلاف اسماء الفاريبلز بس
+    ;----First clear------------------- 
+    mov dl, Big_Cactus_Position
+    mov dh, Y_Cactus     
+    sub dh, Big_Cactus_Height
+    inc dh
+    mov Top_Left, dx 
+    add dl, Big_Cactus_width
+    dec dl
+    mov dh, Y_Cactus       
+    mov Bottom_Right, dx
+    call Clear 
+    ;---------Second decide move or start over---
+    cmp Big_Cactus_Position, 0 
+    jnz Continue_Moving_Big_Cactus
+    
+    mov Big_Cactus_Position, 80 ;width of the screen
+    sub Big_Cactus_Position, Big_Cactus_width 
+    call BigCactusEdges
+          
+    inc Score    
+    inc Score_Counter_For_Speed
+    call CheckIncSpeed
+    ;--------Clear and Write the new Score----
+    ;----move cursor----  
+    mov ah,2
+    mov dl,73  ;x axis (5+ length(score : ) = 65+8=73
+    mov dh,1   ;y axis
+    int 10h 
+    ;-----Clear---------  
+    mov Top_Left, dx 
+    mov Bottom_Right, 0150h ; (x,y)=(80,1)
+    call Clear
+    ;----Print Score-----
+    mov ax, Score
+    mov Number, ax
+    call DisplayNumber
+    
+    jmp Big_Cactus
+            
+    Continue_Moving_Big_Cactus:
+    dec Big_Cactus_Position 
+    
+    mov cx, Big_Cactus_Edges_Count
+    mov di, 0       
+    
+    Big_Cactus_Dec:
+    sub Big_Cactus_Edges[di], 0001h 
+    add di, 2
+    loop Big_Cactus_Dec
+
+    Big_Cactus:                
+    call DrawBigCactus ;هنا برسم الصبار
+	
+    ;-------------Check if Collision happened-------------
+	; هنا انا عاوز اشوف الصبار خبط ولا لا فالديناصور
+	; اول حاجة علشان اشوف انا هدخل ولا لا فالتشيك دا هشوف البوزيشن بتاع الصبار فالمربع الصغير بتاع الديناصور ولا لا
+	; لو مش فيه هعدي التشيك لو فيه هعمله
+	; لما اجي اعمله هيبقا عندي اتنين لوب جوا بعد واحدة اللي جوا بتتغير فيها الايدجز بتاع الديناصور على نفس الايدج بتاعه الصبار
+	; لما تخلص بتطلع للاوتر لوب بتصفر بتاعه الديناصور من الاول و تجيب الايدج بتاعه الصبار اللي بعدها تتشك عليها لو خبطو فبعض يعني بيساو بعض بينط على جيم اوفر ليبل
+	
+    mov dl, X_T_Rex
+    add dl, T_Rex_Width
+    dec dl
+    cmp Small_Cactus_Position, dl
+    ja Skip_Small_Collision ;Skip_Collision_Check_With_Small_Cactus
+      
+    mov di, 0
+    mov si, 0
+    mov ax, Small_Cactus_Edges_Count
+    
+    Outer_Loop_Small_Collision:
+    mov cx, T_Rex_Edges_Count
+    mov di, 0            
+    
+        Check_Small_Collision:   
+        mov dx, T_Rex_Edges[di]
+        cmp dx, Small_Cactus_Edges[si]
+        jz GameOver
+        add di, 2
+        loop Check_Small_Collision   
+    add si, 2
+    dec ax
+    cmp ax, 0
+    jnz Outer_Loop_Small_Collision  
+     
+    jmp Skip_Big_Collision ; lw check el small mosta7el yt4eq el kbera 3l4an el etnen m4 hayb2o 3nd el dinsasour f nafs el frame  
+    
+    Skip_Small_Collision: 
+    cmp Big_Cactus_Position, dl
+    ja Skip_Big_Collision ;Skip_Collision_Check_With_Small_Cactus 
+    
+    ;--------------Big Collision--------------------------
+	; نفس الكلام بظبط بتاع الصبار الصغير مع اختلاف اسماء فاريبلز
+    mov di, 0
+    mov si, 0
+    mov ax, Big_Cactus_Edges_Count
+    
+    Outer_Loop_Big_Collision:
+    mov cx, T_Rex_Edges_Count
+    mov di, 0            
+    
+        Check_Big_Collision:
+        mov dx, T_Rex_Edges[di]  
+        cmp dx, Big_Cactus_Edges[si]
+        jz GameOver
+        add di, 2
+        loop Check_Big_Collision   
+    
+    add si, 2
+    dec ax
+    cmp ax, 0
+    jnz Outer_Loop_Big_Collision
+    
+    Skip_Big_Collision: 
+    
+    
+    
+    ;-------------------------------------------
+    popf  ; بياخد من الستاك يشوف اتداس على زرار ولا لا
+    jz GameLoop ; لو متدسش بيرجع من الاول    
+    mov ah,0 ; لو اتداس بياخده
+    int 16h 
+    ;---------------Jump-------------- بينطل لو داس سبيس او لفوق و ممكن يخرج باجزت
+    cmp al,20h  ;space buttom
+    jz Jump
+    cmp ax,4800h  ;Up buttom
+    jz Jump
+    cmp al, 27 ;ESC
+    jz ExitGame
+    
+    jmp GameLoop  ; لو داس على اي زرار تاني بيرجع للوب من الاول   
+    
+    Jump:
+	cmp Jump_Mode, 0 ; بيتاكد انه على الارض الاول قبل ميغير المود 
+	jnz GameLoop
+    mov Jump_Mode, 1 ; لو داس على زرار النط و هو على الارض بيغير المود ل 1 يعني بينط لفوق     
+   
+    jmp GameLoop  
+    
+    GameOver: ;لو خسر اول حاجة بيحط السكور فالبست سكور لو السكور الجديد اكبر من البست سكور
+	
+    mov ax, Score
+    cmp ax, Best_Score
+    jna Skip_Update_Best_Score
+    mov Best_Score, ax
+    
+    Skip_Update_Best_Score: ; تاني حاجة بيعمل انشيالزاشن من الاول للفاريبلز المهمة
+    mov Jump_Mode, 0
+    mov T_Rex_Position, 21
+    mov Small_Cactus_Position, 40
+    mov Big_Cactus_Position, 73 
+    mov Score, 0
+    mov Delay, 31200   
+    mov Score_Counter_For_Speed, 0
+    ;--------Print Restart Msg------------ ; تالت حاجة بيعرض ماسدج بيقول فيها لو عاوز تعيد دوس ار لو عاوز تقفل دوس اجزت
+    ;--------Move Cursor------------------
+    mov ah, 2
+    mov dx, Msg_Position
+    int 10h         
+    ;-------------------------------------
+    ;-------Print Restart Message---------
+    mov ah, 9
+    mov dx, offset Restart_Msg    
+    int 21h
+    ;-------------------------------------
+    Wait_Reset: ; بيفضل واقف مستني يدوس ار او اجزت علشان يعيد او يقفل الجيم
+    mov ah, 0h
+    int 16h
+    cmp al, 'r'
+    jz StartOver
+    cmp al, 'R' 
+    jz StartOver
+    cmp al, 27 ;ESC
+    jz ExitGame
+    jmp Wait_Reset   
+                                
+main endp
+;الفانكشنز دي معظمها اتكلمت على حاجات زيها بظبط فوق و معظمها بيزك
+;فانكشنز الرسم بيحرك المؤشر و بعدين يرسم سطر و بعدين يحرك المؤثر تاني و يرسم اللي بعده و هكذا
+;---------------------Drawing Functions-------------
+DrawT_Rex proc near    
+    ;----move cursor----  
+    mov ah, 2
+    mov dl, X_T_Rex  ; x of the t-rex      
+    mov dh, T_Rex_Position ; y axis
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset T_Rex_Shape_8 
+    int 21h
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dl, X_T_Rex  ; start x of the t-rex      
+    mov dh, T_Rex_Position ; y axis 
+    sub dh, 1                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset T_Rex_Shape_7
+    int 21h 
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dl, X_T_Rex  ; start x of the t-rex      
+    mov dh, T_Rex_Position ; y axis 
+    sub dh, 2                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset T_Rex_Shape_6
+    int 21h  
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dl, X_T_Rex  ; start x of the t-rex      
+    mov dh, T_Rex_Position ; y axis 
+    sub dh, 3                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset T_Rex_Shape_5
+    int 21h    
+                     
+    ;----move cursor----  
+    mov ah, 2
+    mov dl, X_T_Rex  ; start x of the t-rex      
+    mov dh, T_Rex_Position ; y axis 
+    sub dh, 4               
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset T_Rex_Shape_4
+    int 21h
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dl, X_T_Rex  ; x of the t-rex      
+    mov dh, T_Rex_Position ; y axis 
+    sub dh, 5                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset T_Rex_Shape_3
+    int 21h
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dl, X_T_Rex  ; x of the t-rex      
+    mov dh, T_Rex_Position ; y axis 
+    sub dh, 6                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset T_Rex_Shape_2
+    int 21h   
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dl, X_T_Rex  ; x of the t-rex      
+    mov dh, T_Rex_Position ; y axis 
+    sub dh, 7                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset T_Rex_Shape_1
+    int 21h                     
+    
+    ret
+DrawT_Rex endp  
+
+DrawSmallCactus proc near   
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Small_Cactus_Position ; x axis
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Small_Cactus_Shape_5 
+    int 21h
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Small_Cactus_Position ; x axis
+    sub dh, 1                
+    int 10h                                                     
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Small_Cactus_Shape_4
+    int 21h 
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Small_Cactus_Position ; x axis 
+    sub dh, 2                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Small_Cactus_Shape_3
+    int 21h  
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Small_Cactus_Position ; x axis 
+    sub dh, 3                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Small_Cactus_Shape_2
+    int 21h 
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Small_Cactus_Position ; x axis
+    sub dh, 4                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Small_Cactus_Shape_1
+    int 21h     
+                     
+    ret
+DrawSmallCactus endp 
+
+DrawBigCactus proc near   
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Big_Cactus_Position ; x axis
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Big_Cactus_Shape_7 
+    int 21h
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Big_Cactus_Position ; x axis
+    sub dh, 1                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Big_Cactus_Shape_6
+    int 21h 
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Big_Cactus_Position ; x axis 
+    sub dh, 2                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Big_Cactus_Shape_5
+    int 21h  
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Big_Cactus_Position ; x axis 
+    sub dh, 3                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Big_Cactus_Shape_4
+    int 21h 
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Big_Cactus_Position ; x axis
+    sub dh, 4                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Big_Cactus_Shape_3
+    int 21h 
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Big_Cactus_Position ; x axis
+    sub dh, 5                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Big_Cactus_Shape_2
+    int 21h 
+    
+    ;----move cursor----  
+    mov ah, 2
+    mov dh, Y_Cactus      
+    mov dl, Big_Cactus_Position ; x axis
+    sub dh, 6                
+    int 10h   
+    ;----Draw T_Rex_____
+    mov ah, 9
+    mov dx, offset Big_Cactus_Shape_1
+    int 21h                          
+    
+    ret
+DrawBigCactus endp
+
+;--------Clear Function----
+Clear proc near ;بيمسح السكرين من البوزين اللي بحطة فالتوب ليفت لحد البوزيشن اللي بحطة فالتوب رايت
+    pusha  ;دي علشان مجرد بحافظ على الريجسترز قبل الفانكشنز احتياطي
+    mov ax, 0600H
+    mov bh, 0fh ;white with black bg
+    mov cx, Top_Left
+    mov dx, Bottom_Right
+    int 10h 
+    popa
+    ret   
+Clear endp
+
+;----Display Decimal Function---- 
+DisplayNumber proc near 
+    mov ax, Number    
+    MOV CX, 0            
+L1: 
+    MOV DX, 0
+    MOV BX, 10
+    DIV BX
+    ADD DX, 30H
+    PUSH DX
+    INC CX
+                
+    CMP AX, 0
+    JNE L1 
+    
+    MOV AH,2
+    mov bx,0 ;move cursor be okay علشان لما بحرك المؤشر و ال بي اكس فيها حاجة غالبا بيخرف فلما بستخدمة بصفرة لما اخلصه
+L2:             
+    POP DX
+    int 21h
+    LOOP L2 
+       
+    ret            
+DisplayNumber endp
+
+; الاتنين دول زي بتوع الديناصور فاول الكود فوق بظبط و برضو في شرح بالشكل زي الديناصور كدا
+;-------Small Cactus Edges-------
+SmallCactusEdges proc near       
+    ;(1)  (3)
+    ; * (2)*(4)(5)
+    ; *  * * * **
+    ; ** * * *
+    ;    * * *
+    
+    ; Small_Cactus_Position -4y to go to 1
+    ; 2x+y to go to 2
+    ; x-y to go to 3
+    ; x+y to go to 4
+    ; 2x to go to 5
+    
+    mov dl, Small_Cactus_Position
+    mov dh, Y_Cactus
+    
+    sub dh, 4 ;-4y
+    mov Small_Cactus_Edges[0], dx  ;Go to 1
+    
+    add dl, 2 ;+2x
+    add dh, 1 ;+y
+    mov Small_Cactus_Edges[2], dx  ;Go to 2
+    
+    add dl, 1 ;+x  
+    sub dh, 1 ;-y
+    mov Small_Cactus_Edges[4], dx  ;Go to 3
+    
+    add dl, 1 ;+x  
+    add dh, 1 ;+y
+    mov Small_Cactus_Edges[6], dx  ;Go to 4
+    
+    add dl, 2 ;+2x  
+    mov Small_Cactus_Edges[8], dx  ;Go to 5
+    ret
+SmallCactusEdges endp
+
+;-------Big Cactus Edges-------
+BigCactusEdges proc near       
+    ;     (3)  (5)
+    ;(1)(2)*(4) *
+    ; *  * * *  *
+    ; ** * * *  *
+    ;    * * * **
+    ;    * * *
+    ;    * * *  
+    
+    ;Big_Cactus_Position -5y to go to 1
+    ;+2x to go to 2
+    ;+x-y to go to 3
+    ;+x+y to go to 4
+    ;+2x-y to go to 5
+    
+    mov dl, Big_Cactus_Position
+    mov dh, Y_Cactus
+    
+    sub dh, 5 ;-5y
+    mov Big_Cactus_Edges[0], dx  ;Go to 1
+    
+    add dl, 2 ;+2x
+    mov Big_Cactus_Edges[2], dx  ;Go to 2
+    
+    add dl, 1 ;+x  
+    sub dh, 1 ;-y
+    mov Big_Cactus_Edges[4], dx  ;Go to 3
+    
+    add dl, 1 ;+x  
+    add dh, 1 ;+y
+    mov Big_Cactus_Edges[6], dx  ;Go to 4
+    
+    add dl, 2 ;+2x
+    sub dh, 1 ;-y  
+    mov Big_Cactus_Edges[8], dx  ;Go to 5
+    ret
+BigCactusEdges endp 
+
+;----------Manage Speed---------
+CheckIncSpeed proc near   ; دي انا بشوف فيها الاول لو الديلاي بصفر يعني مفيش ديلاي مش هقلل اكتر من كدا لو موصلش للزيادة اللي محتاجها علشان اغير السرعة برضو مش بعدل فالديلاي
+						; لما يوصل للزيادة المطلوبة بنقص الديلاي فالسرعة تزيد
+    cmp Delay, 0
+    jnz Continue1_CheckIncSpeed  
+    ret         
+    
+    Continue1_CheckIncSpeed:
+    cmp Score_Counter_For_Speed, Score_To_Inc_Speed
+    jz Continue2_CheckIncSpeed 
+    ret
+    
+    Continue2_CheckIncSpeed:             
+    sub Delay, Delay_Dec_Value
+    mov Score_Counter_For_Speed, 0 ;reset 
+    ret
+CheckIncSpeed endp
+
+;-----------------------------end main----------------------------------
+ExitGame:       ; علشان اقفل اللعبة من الدوس بمسح الشاشة الاول علشان الشكل يكون احسن و بعدين بعمل تيرمينات للدوس\
+;---------------Clear Whole Screen-------------------------------
+mov Top_Left, 0
+mov Bottom_Right, 1950h
+call clear 
+;----------------------------------------------------------------
+mov ah,04ch ;DOS "terminate" function
+int 21h    
+end main                                                                          

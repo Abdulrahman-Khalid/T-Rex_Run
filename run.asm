@@ -502,7 +502,9 @@ GameLoop:
     
     jmp GameLoop     
     
-    Jump:
+    Jump:   
+    cmp Jump_Mode, 0
+    jnz GameLoop
     mov Jump_Mode, 1 ; jump up    
     
     
