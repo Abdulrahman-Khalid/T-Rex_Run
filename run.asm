@@ -45,14 +45,17 @@ Big_Cactus_width equ 7
 Big_Cactus_Edges_Count equ 5 
 Big_Cactus_Edges dw ?, ?, ?, ?, ?
 Big_Cactus_Position db 73 ;db because only x axis change every frame                              
-
+Score_To_Inc_Speed equ 5             
+Score_Counter_For_Speed db 0
+Delay_Dec_Value equ 100 ; to increase speed
+Delay dw 31200  ;31200 divisable by 100 (Delay_Dec_Value) will reach zero
  
 Clouds_Shape_1 db '   **                     **','$'
 Clouds_Shape_2 db '  *  *  **           **  *  *   **','$'
 Clouds_Shape_3 db ' *    **  *         *  **    * *  *','$'
 Clouds_Shape_4 db '*          *       *          *    *','$'
 Clouds_Shape_5 db '************       *****************','$'
-Clouds_Position equ 0617h
+Clouds_Position equ 0617h 
 
 Y_Cactus equ 21
 X_T_Rex equ 2 
@@ -66,6 +69,9 @@ Number dw ?
 
 Top_Left dw ?
 Bottom_Right dw ? 
+
+Restart_Msg db 'Click R to Restart or ESC to Exit','$'
+Msg_Position equ 0117h
 
 .code
 main proc far           
@@ -253,9 +259,9 @@ GameLoop:
     int 16h 
     pushf                               
     ;----------------Making Delay----------------
-    mov cx,0H
-    mov dx,7A12H
-    mov ah,86H
+    mov cx, 0H
+    mov dx, Delay
+    mov ah, 86H
     int 15H
     ;-------------------New Frame---------------- 
     ;-------------------First the T-Rex---------- 
@@ -337,7 +343,9 @@ GameLoop:
     sub Small_Cactus_Position, Small_Cactus_width   
     call SmallCactusEdges 
                            
-    inc Score
+    inc Score             
+    inc Score_Counter_For_Speed
+    call CheckIncSpeed
     ;--------Clear and Write the new Score----
     
     ;----move cursor----  
@@ -390,7 +398,8 @@ GameLoop:
     call BigCactusEdges
           
     inc Score    
-    
+    inc Score_Counter_For_Speed
+    call CheckIncSpeed
     ;--------Clear and Write the new Score----
     ;----move cursor----  
     mov ah,2
@@ -483,13 +492,13 @@ GameLoop:
     jz GameLoop     
     mov ah,0
     int 16h 
-    cmp Jump_Mode, 0
-    jnz GameLoop
     ;---------------Jump--------------
     cmp al,20h  ;space buttom
     jz Jump
     cmp ax,4800h  ;Up buttom
     jz Jump
+    cmp al, 27 ;ESC
+    jz ExitGame
     
     jmp GameLoop     
     
@@ -499,16 +508,31 @@ GameLoop:
     
     jmp GameLoop  
     
-    GameOver:
+    GameOver:    
     mov ax, Score
+    cmp ax, Best_Score
+    jna Skip_Update_Best_Score
     mov Best_Score, ax
     
+    Skip_Update_Best_Score:
     mov Jump_Mode, 0
     mov T_Rex_Position, 21
     mov Small_Cactus_Position, 40
     mov Big_Cactus_Position, 73 
     mov Score, 0
-             
+    mov Delay, 31200   
+    mov Score_Counter_For_Speed, 0
+    ;--------Print Restart Msg------------
+    ;--------Move Cursor------------------
+    mov ah, 2
+    mov dx, Msg_Position
+    int 10h         
+    ;-------------------------------------
+    ;-------Print Restart Message---------
+    mov ah, 9
+    mov dx, offset Restart_Msg    
+    int 21h
+    ;-------------------------------------
     Wait_Reset: 
     mov ah, 0h
     int 16h
@@ -516,6 +540,8 @@ GameLoop:
     jz StartOver
     cmp al, 'R' 
     jz StartOver
+    cmp al, 27 ;ESC
+    jz ExitGame
     jmp Wait_Reset   
                                 
 main endp
@@ -860,10 +886,32 @@ BigCactusEdges proc near
     sub dh, 1 ;-y  
     mov Big_Cactus_Edges[8], dx  ;Go to 5
     ret
-BigCactusEdges endp
+BigCactusEdges endp 
+
+;----------Manage Speed---------
+CheckIncSpeed proc near   
+    cmp Delay, 0
+    jnz Continue1_CheckIncSpeed  
+    ret         
+    
+    Continue1_CheckIncSpeed:
+    cmp Score_Counter_For_Speed, Score_To_Inc_Speed
+    jz Continue2_CheckIncSpeed 
+    ret
+    
+    Continue2_CheckIncSpeed:             
+    sub Delay, Delay_Dec_Value
+    mov Score_Counter_For_Speed, 0 ;reset 
+    ret
+CheckIncSpeed endp
 
 ;-----------------------------end main----------------------------------
-ExitGame:
+ExitGame:       
+;---------------Clear Whole Screen-------------------------------
+mov Top_Left, 0
+mov Bottom_Right, 1950h
+call clear 
+;----------------------------------------------------------------
 mov ah,04ch ;DOS "terminate" function
 int 21h    
 end main                                                                          
